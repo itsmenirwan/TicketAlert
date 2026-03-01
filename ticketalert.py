@@ -30,23 +30,23 @@ def send_telegram(message):
     except Exception as e:
         log(f"Telegram error: {e}")
 
+SCRAPER_API_KEY = "e0a916714723875f6dd476f9baa71af9"
+
 def check_tickets():
     for url in URLS:
         try:
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-            res = requests.get(url, timeout=15, headers=headers)
+            scraper_url = f"http://api.scraperapi.com?api_key={SCRAPER_API_KEY}&url={url}"
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            res = requests.get(scraper_url, timeout=30, headers=headers)
             soup = BeautifulSoup(res.text, "html.parser")
             page_text = soup.get_text().lower()
-
-            # DEBUG: print snippet so you can verify it's reading the page
             log(f"Page snippet: {page_text[:300]}")
-
             for kw in KEYWORDS:
                 if kw in page_text:
                     return True, url, kw
         except Exception as e:
             log(f"Error checking {url}: {e}")
-            send_telegram(f"⚠️ <b>Error while checking tickets!</b>\n{e}\n\nWill retry in {CHECK_INTERVAL}s")
+            send_telegram(f"⚠️ Error: {e}")
     return False, None, None
 
 # ---- STARTUP TEST ----
@@ -101,5 +101,6 @@ while True:
         if errors_in_row >= 5:
             send_telegram("🔴 <b>Too many errors! Bot may have stopped. Please restart Colab!</b>")
         time.sleep(30)
+
 
     time.sleep(CHECK_INTERVAL)
