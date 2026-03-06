@@ -5,13 +5,13 @@ import time
 from bs4 import BeautifulSoup
 from datetime import datetime
 
-BOT_TOKEN = "8217134371:AAG4wKoLY0Y5pnfgeSJuEzz_TyUJHDItNTc"
-CHAT_ID = "1153831634"
+BOT_TOKEN = "8751636091:AAExdFpUPDhlAhesRnHUgSvsrtcj-Kg49lk"
+CHAT_ID = "8751636091"
 CHECK_INTERVAL = 1800        # Check every 60 seconds
 HEARTBEAT_INTERVAL = 1800  # Telegram update every 30 mins
 
 URLS = [
-    "https://in.bookmyshow.com/sports/icc-men-s-t20-world-cup-2026-semi-final-2/ET00474271",
+    "https://in.bookmyshow.com/sports/icc-men-s-t20-world-cup-2026-final/ET00476187",
 ]
 
 KEYWORDS = ["book now", "buy tickets", "add to cart", "proceed", "select seats"]
