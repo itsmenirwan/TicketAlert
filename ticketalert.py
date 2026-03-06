@@ -13,10 +13,10 @@ app = Flask(__name__)
 def health_check():
     return "Ticket Bot is Running!", 200
 
-# --- YOUR ORIGINAL CONFIGURATION ---
-# Note: It's safer to use os.environ.get("BOT_TOKEN") here later
-BOT_TOKEN = "8751636091:AAExdFpUPDhlAhesRnHUgSvsrtcj-Kg49lk"
-CHAT_ID = "-1003786313599"
+# --- CONFIGURATION ---
+# Using os.environ.get is recommended once you set these in Render Dashboard
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "8751636091:AAExdFpUPDhlAhesRnHUgSvsrtcj-Kg49lk")
+CHAT_ID = os.environ.get("CHAT_ID", "-1003786313599")
 CHECK_INTERVAL = 1800        
 HEARTBEAT_INTERVAL = 1800  
 SCRAPER_API_KEY = "e0a916714723875f6dd476f9baa71af9"
@@ -30,8 +30,11 @@ def log(msg):
 def send_telegram(message):
     try:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-        requests.post(url, data={"chat_id": CHAT_ID, "text": message, "parse_mode": "HTML"}, timeout=10)
-        log("Telegram notification sent.")
+        res = requests.post(url, data={"chat_id": CHAT_ID, "text": message, "parse_mode": "HTML"}, timeout=10)
+        if res.status_code == 200:
+            log("Telegram notification sent ✅")
+        else:
+            log(f"Telegram failed ❌: {res.text}")
     except Exception as e:
         log(f"Telegram error: {e}")
 
@@ -52,6 +55,9 @@ def check_tickets():
 # --- THE MAIN MONITORING LOOP ---
 def run_monitoring_loop():
     log("🚀 Monitoring thread started...")
+    # Initial startup message so you know it's working
+    send_telegram("✅ <b>Ticket Bot Started!</b>\nMonitoring ICC T20 World Cup Final...")
+    
     alerted = False
     check_count = 0
     last_heartbeat = time.time()
@@ -59,6 +65,7 @@ def run_monitoring_loop():
     while True:
         try:
             check_count += 1
+            log(f"Performing check #{check_count}")
             found, source_url, keyword = check_tickets()
 
             if found and not alerted:
@@ -74,11 +81,13 @@ def run_monitoring_loop():
         
         time.sleep(CHECK_INTERVAL)
 
-# --- START BOTH SERSVCIES ---
+# --- START BOTH SERVICES ---
+
+# 1. Start the monitoring thread IMMEDIATELY (Gunicorn needs this here)
+monitoring_thread = threading.Thread(target=run_monitoring_loop, daemon=True)
+monitoring_thread.start()
+
+# 2. This block only runs if you run 'python ticketalert.py' locally
 if __name__ == "__main__":
-    # Start the ticket checker in the background
-    threading.Thread(target=run_monitoring_loop, daemon=True).start()
-    
-    # Start the web server (Render/Northflank look for this)
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
