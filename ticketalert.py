@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 from flask import Flask
 
-# --- FLASK HEARTBEAT FOR RENDER/NORTHFLANK ---
+# --- FLASK HEARTBEAT FOR RENDER ---
 app = Flask(__name__)
 
 @app.route('/')
@@ -14,11 +14,10 @@ def health_check():
     return "Ticket Bot is Running!", 200
 
 # --- CONFIGURATION ---
-# Using os.environ.get is recommended once you set these in Render Dashboard
+# Intervals set to 600 seconds (10 minutes)
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "8751636091:AAExdFpUPDhlAhesRnHUgSvsrtcj-Kg49lk")
 CHAT_ID = os.environ.get("CHAT_ID", "-1003786313599")
-CHECK_INTERVAL = 1800        
-HEARTBEAT_INTERVAL = 1800  
+CHECK_INTERVAL = 600        
 SCRAPER_API_KEY = "e0a916714723875f6dd476f9baa71af9"
 
 URLS = ["https://in.bookmyshow.com/sports/icc-men-s-t20-world-cup-2026-final/ET00476187"]
@@ -55,12 +54,10 @@ def check_tickets():
 # --- THE MAIN MONITORING LOOP ---
 def run_monitoring_loop():
     log("🚀 Monitoring thread started...")
-    # Initial startup message so you know it's working
-    send_telegram("✅ <b>Ticket Bot Started!</b>\nMonitoring ICC T20 World Cup Final...")
+    send_telegram("✅ <b>Ticket Bot Started!</b>\nI will check and provide a status update every 10 minutes.")
     
     alerted = False
     check_count = 0
-    last_heartbeat = time.time()
 
     while True:
         try:
@@ -68,26 +65,34 @@ def run_monitoring_loop():
             log(f"Performing check #{check_count}")
             found, source_url, keyword = check_tickets()
 
-            if found and not alerted:
-                send_telegram(f"🚨 <b>TICKETS LIVE!</b>\nDetected: {keyword}\nURL: {source_url}")
+            # 1. ALERT IF TICKETS ARE FOUND
+            if found:
+                send_telegram(f"🚨 <b>TICKETS LIVE!</b>\nDetected: <i>{keyword}</i>\nURL: {source_url}")
                 alerted = True
-
-            if time.time() - last_heartbeat >= HEARTBEAT_INTERVAL:
-                send_telegram(f"💓 Bot Active. Checks: {check_count}")
-                last_heartbeat = time.time()
+            
+            # 2. 10-MINUTE STATUS LOG
+            status_emoji = "✅ LIVE" if found else "❌ Not Live"
+            status_msg = (
+                f"📊 <b>Check #{check_count} Status</b>\n"
+                f"Tickets: {status_emoji}\n"
+                f"🕐 Time: {datetime.now().strftime('%H:%M:%S')}\n"
+                f"🎫 Found yet: {'YES' if alerted else 'No'}"
+            )
+            send_telegram(status_msg)
 
         except Exception as e:
             log(f"Loop error: {e}")
+            send_telegram(f"⚠️ <b>Bot Error:</b> Logic crashed but loop is restarting...")
         
+        # Wait 10 minutes (600 seconds)
         time.sleep(CHECK_INTERVAL)
 
 # --- START BOTH SERVICES ---
 
-# 1. Start the monitoring thread IMMEDIATELY (Gunicorn needs this here)
+# Start the monitoring thread immediately for Gunicorn
 monitoring_thread = threading.Thread(target=run_monitoring_loop, daemon=True)
 monitoring_thread.start()
 
-# 2. This block only runs if you run 'python ticketalert.py' locally
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
