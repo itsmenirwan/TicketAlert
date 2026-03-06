@@ -16,7 +16,7 @@ def health_check():
 # --- YOUR ORIGINAL CONFIGURATION ---
 # Note: It's safer to use os.environ.get("BOT_TOKEN") here later
 BOT_TOKEN = "8751636091:AAExdFpUPDhlAhesRnHUgSvsrtcj-Kg49lk"
-CHAT_ID = "8751636091"
+CHAT_ID = "1003786313599"
 CHECK_INTERVAL = 1800        
 HEARTBEAT_INTERVAL = 1800  
 SCRAPER_API_KEY = "e0a916714723875f6dd476f9baa71af9"
